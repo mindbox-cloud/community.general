@@ -174,11 +174,12 @@ class IdracRedfishUtils(RedfishUtils):
             msg = to_native(e)
             self.module.fail_json(msg=msg)
 
-        key = "Attributes"
+        key = "" if command == "SetLocationAttributes" else "Attributes"
         command_manager_attributes_uri_map = {
             "SetManagerAttributes": self.manager_uri,
             "SetLifecycleControllerAttributes": "/redfish/v1/Managers/LifecycleController.Embedded.1",
-            "SetSystemAttributes": "/redfish/v1/Managers/System.Embedded.1"
+            "SetSystemAttributes": "/redfish/v1/Managers/System.Embedded.1",
+            "SetLocationAttributes": "/redfish/v1/Managers/iDRAC.Embedded.1/Oem/Dell/DellAttributes/System.Embedded.1"
         }
         manager_uri = command_manager_attributes_uri_map.get(command, self.manager_uri)
 
@@ -200,7 +201,7 @@ class IdracRedfishUtils(RedfishUtils):
         result['ret'] = True
         data = response['data']
 
-        if key not in data:
+        if key not in data and key != "":
             return {'ret': False,
                     'msg': "%s: Key %s not found" % (command, key)}
 
@@ -231,13 +232,13 @@ class IdracRedfishUtils(RedfishUtils):
 
 CATEGORY_COMMANDS_ALL = {
     "Manager": ["SetManagerAttributes", "SetLifecycleControllerAttributes",
-                "SetSystemAttributes"]
+                "SetSystemAttributes", "SetLocationAttributes"]
 }
 
 # list of mutually exclusive commands for a category
 CATEGORY_COMMANDS_MUTUALLY_EXCLUSIVE = {
     "Manager": [["SetManagerAttributes", "SetLifecycleControllerAttributes",
-                 "SetSystemAttributes"]]
+                 "SetSystemAttributes", "SetLocationAttributes"]]
 }
 
 
@@ -279,7 +280,7 @@ def main():
 
     # Check that Category is valid
     if category not in CATEGORY_COMMANDS_ALL:
-        module.fail_json(msg=to_native("Invalid Category '%s'. Valid Categories = %s" % (category, list(CATEGORY_COMMANDS_ALL.keys()))))
+        module.fail_json(msg=to_native("Invalid Category '%s'. Valid Categories = %s" % (category, CATEGORY_COMMANDS_ALL.keys())))
 
     # Check that all commands are valid
     for cmd in command_list:
@@ -307,7 +308,7 @@ def main():
             module.fail_json(msg=to_native(result['msg']))
 
         for command in command_list:
-            if command in ["SetManagerAttributes", "SetLifecycleControllerAttributes", "SetSystemAttributes"]:
+            if command in ["SetManagerAttributes", "SetLifecycleControllerAttributes", "SetSystemAttributes", "SetLocationAttributes"]:
                 result = rf_utils.set_manager_attributes(command)
 
     if any((module.params['manager_attribute_name'], module.params['manager_attribute_value'])):
